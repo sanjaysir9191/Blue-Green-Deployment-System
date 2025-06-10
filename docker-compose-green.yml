@@ -1,0 +1,84 @@
+# # FILE: docker-compose-green.yml
+# # ==============================================
+# version: '3.8'
+
+# services:
+#   green-app:
+#     build: .
+#     ports:
+#       - "8081:8080"
+#     environment:
+#       - ENVIRONMENT=green
+#       - APP_PORT=9090
+#       - DB_HOST=${DB_HOST}
+#       - DB_NAME=myapp_green
+#     env_file:
+#       - .env.green
+#     restart: unless-stopped
+#     networks:
+#       - green-network
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+
+# networks:
+#   green-network:
+#     driver: bridge
+
+version: '3.8'
+
+services:
+  green-app:
+    image: your-app:${IMAGE_TAG:-latest}
+    container_name: blue-green-deployment_green-app_1
+    ports:
+      - "8081:8080"  # Map host port 8081 to container port 8080
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - APP_ENV=${APP_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENVIRONMENT=green
+      - PORT=8080
+    env_file:
+      - .env.green
+    networks:
+      - green-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      - green-db
+    
+  green-db:
+    image: postgres:13
+    container_name: blue-green-deployment_green-db_1
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - green_db_data:/var/lib/postgresql/data
+    networks:
+      - green-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  green-network:
+    driver: bridge
+
+volumes:
+  green_db_data:

@@ -1,0 +1,27 @@
+# FILE: docker-compose-blue.yml
+version: '3.8'
+
+services:
+  blue-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=blue
+      - APP_PORT=8080
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=myapp_blue
+    env_file:
+      - .env.blue
+    restart: unless-stopped
+    networks:
+      - blue-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  blue-network:
+    driver: bridge
